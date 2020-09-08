@@ -87,9 +87,7 @@ void Grid::update()
 	{
 		for (int x = 0; x < width; x++)
 		{
-			  id = y * width + x;
-		   if (y == 1 && x == 1)
-		   		std::cout << cells[id].health << std::endl;
+			id = y * width + x;
 			if (cells[id].status == 1)
 			{
 				if (cells[id].health < 2 || cells[id].health > 3)

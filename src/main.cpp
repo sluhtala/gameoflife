@@ -4,8 +4,6 @@
 #include "grid.h"
 #include "gameoflife.h"
 
-
-
 void	exit_program(t_data *data)
 {
 	if (data->init == 0)
@@ -26,9 +24,10 @@ t_data	*initialization()
 
 	data = new t_data;	
 	data->init = -1;
-	data->init = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
+	data->init = SDL_Init(SDL_INIT_VIDEO);
 	data->window = NULL;
 	data->grid = NULL;
+	data->game_speed = GAME_SPEED;
 	if (data->init != 0)
 	   exit_program(data);
 	else
@@ -43,8 +42,7 @@ t_data	*initialization()
 	   exit_program(data);
 	else
 	   std::cout << "SDL renderer created" <<  std::endl;
-	data->grid = new Grid(20, 10, 30);
-	std::cout << data->grid->width << std::endl;
+	data->grid = new Grid(GRID_WIDTH, GRID_HEIGHT, CELL_SICE);
 	SDL_SetRenderDrawColor(data->renderer, 0, 0, 0, 1);
 
 	return(data);
@@ -74,7 +72,6 @@ Uint32	grid_update(Uint32 interval, void *param)
 
 	data = (t_data*)param;
 	i = 0;
-	std::cout << "update" << std::endl;
 	if (data->playing == 1)
 	   data->grid->update();
 	SDL_RenderPresent(data->renderer);
@@ -88,60 +85,33 @@ Uint32	grid_update(Uint32 interval, void *param)
 	return(interval);
 }
 
-
-void	toggle_play(t_data *data, int *timer)
+void	toggle_play(t_data *data, Uint32 *timer)
 {
 	data->grid->draw(data);
    	if (data->playing == 0)
 	{
 	   *timer = SDL_GetTicks();
-		//*timer = SDL_AddTimer(GRID_UPDATE_DELAY, grid_update, (void*)data);
 		draw_rect_color(data, 0, 255, 0);
 	}
 	else
 	{
 	   *timer = 0;
-		//SDL_RemoveTimer(*timer);
 		draw_rect_color(data, 255, 0, 0);
 	}
    	SDL_RenderPresent(data->renderer);
 	data->playing = (data->playing + 1) % 2;
-	std::cout << data->playing << std::endl;
-}
-
-void input_handler(t_data *data, int x, int y)
-{
-	int cell_size;
-	int cellid;
-	
-	if (x < 0 || y < 0)
-		return ;
-	cell_size = data->grid->cell_size;
-	if (x > data->grid->width * cell_size)
-	   return ;
-	if (y > data->grid->height * cell_size)
-	   return ;
-	cellid = y / cell_size * data->grid->width + x / cell_size; 
-	data->grid->cells[cellid].toggle();
-	SDL_RenderClear(data->renderer);
-	data->grid->draw(data);
-	if (data->playing)
-		draw_rect_color(data, 0, 255, 0);
-	else
-		draw_rect_color(data, 255, 0, 0);
-	SDL_RenderPresent(data->renderer);
 }
 
 void window_loop(t_data *data)
 {
 	int mouseclick;
-	int timer;
+	Uint32 timer;
 
 	mouseclick = 0;
 	timer = 0;
 	while (data->running == 1)
 	{
-	   	if (data->playing && timer > 0 && SDL_GetTicks() - timer >= GRID_UPDATE_DELAY)
+	   	if (data->playing && timer > 0 && SDL_GetTicks() - timer >= data->game_speed)
 		{
 			grid_update(0, (void*)data);
 			timer = SDL_GetTicks();
@@ -152,32 +122,7 @@ void window_loop(t_data *data)
 			data->running = 0;
 			break;
 		}
-		if (data->event.type == SDL_KEYDOWN && data->event.key.keysym.sym == SDLK_ESCAPE)
-			 data->running = 0;
-		if (data->event.type == SDL_KEYDOWN && data->event.key.keysym.sym == SDLK_SPACE)
-		{
-		   toggle_play(data, &timer);
-		}
-		if (mouseclick == 0 && data->event.type == SDL_MOUSEBUTTONDOWN)
-		{
-			mouseclick = 1;
-			input_handler(data, data->event.button.x, data->event.button.y);
-		}
-		if (data->event.type == SDL_MOUSEBUTTONUP)
-		{
-			mouseclick = 0;
-		}
-		if (data->event.type == SDL_KEYDOWN && data->event.key.keysym.sym == SDLK_c)
-		{
-			data->grid->clear_cells();
-			SDL_RenderClear(data->renderer);
-			data->grid->draw(data);
-			if (data->playing == 1)
-				draw_rect_color(data, 0, 255, 0);
-			else
-				draw_rect_color(data, 255, 0, 0);
-			SDL_RenderPresent(data->renderer);
-		}
+		input_manager(data, &timer);
 	}
 }
 
@@ -187,9 +132,6 @@ int main()
 
 	data = initialization();
 	std::cout << "Welcome to game of life!" << std::endl;
-   	data->grid->cells[10].status = 1;
-   	data->grid->cells[11].status = 1;
-   	data->grid->cells[12].status = 1;
 	grid_update(0, data);
 	window_loop(data);
 	if (data->running == 0)
