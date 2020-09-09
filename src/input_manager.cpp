@@ -4,20 +4,14 @@
 static void clear_grid_cells(t_data *data)
 {
 	data->grid->clear_cells();
-	SDL_RenderClear(data->renderer);
-	data->grid->draw(data);
-	if (data->playing == 1)
-		draw_rect_color(data, 0, 255, 0);
-	else
-		draw_rect_color(data, 255, 0, 0);
-	SDL_RenderPresent(data->renderer);
+	refresh_game(data);
 }
 
 static void input_toggle_cell(t_data *data, int x, int y)
 {
 	int cell_size;
 	int cellid;
-	
+
 	if (x < 0 || y < 0)
 		return ;
 	cell_size = data->grid->cell_size;
@@ -27,23 +21,25 @@ static void input_toggle_cell(t_data *data, int x, int y)
 	   return ;
 	cellid = y / cell_size * data->grid->width + x / cell_size; 
 	data->grid->cells[cellid].toggle();
-	SDL_RenderClear(data->renderer);
-	data->grid->draw(data);
-	if (data->playing)
-		draw_rect_color(data, 0, 255, 0);
-	else
-		draw_rect_color(data, 255, 0, 0);
-	SDL_RenderPresent(data->renderer);
+	refresh_game(data);
 }
 
 static void adjust_gamespeed(t_data *data, int speed)
 {
+	float fps;
+
+	if (data->game_speed <= 100 )
+	  speed /= 10;
+	if (data->game_speed == 100 && speed >= 0)
+	  speed *= 10;
 	data->game_speed = data->game_speed + speed;
-	if (data->game_speed < 200)
-		data->game_speed = 200;
+	if (data->game_speed < 10)
+		data->game_speed = 10;
 	if (data->game_speed > 5000)
 		data->game_speed = 5000;
-	std::cout << "Game update time: " << data->game_speed << "ms" << std::endl;	
+	fps = 1.0 / (data->game_speed / 1000.0);
+	std::cout << "Fps: " << fps << std::endl;	
+	//std::cout << "Game update time: " << data->game_speed << "ms" << std::endl;	
 }
 
 void	input_manager(t_data *data, Uint32 *timer)
@@ -51,8 +47,16 @@ void	input_manager(t_data *data, Uint32 *timer)
 	SDL_Event e;
 	static int mouseclick = 0;
 	static int keypress = 0;
+	static Uint32 key_timer;
+	static int pressdelay = 500;
 
 	e = data->event;
+	if (SDL_GetTicks() - key_timer > pressdelay)
+	{
+	   	pressdelay = 100;
+		key_timer = SDL_GetTicks();
+		keypress = 0;
+	}
 	if (e.type == SDL_KEYDOWN)
 	{
 		if (e.key.keysym.sym == SDLK_ESCAPE)
@@ -63,13 +67,15 @@ void	input_manager(t_data *data, Uint32 *timer)
 			toggle_play(data, timer);
 		if (keypress == 0 && e.key.keysym.sym == SDLK_LEFT)
 		{
-	   	   adjust_gamespeed(data, 100);
-	  	   keypress = 1;
+	   		adjust_gamespeed(data, 100);
+	  		keypress = 1;
+			key_timer = SDL_GetTicks();
 		}	
 		if (keypress == 0 && e.key.keysym.sym == SDLK_RIGHT)
 		{
 			adjust_gamespeed(data, -100);
 	  		keypress = 1;
+			key_timer = SDL_GetTicks();
 		}
 	}
 	if (e.type == SDL_KEYUP)
@@ -78,6 +84,7 @@ void	input_manager(t_data *data, Uint32 *timer)
 			keypress = 0;
 		if (e.key.keysym.sym == SDLK_RIGHT)	
 			keypress = 0;
+		pressdelay = 500;
 	}
 	if (e.type == SDL_MOUSEBUTTONDOWN)
 	{

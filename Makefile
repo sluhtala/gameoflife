@@ -1,7 +1,8 @@
 NAME=gameoflife
 SRCS=main.cpp\
 	 grid.cpp\
-	 input_manager.cpp
+	 input_manager.cpp\
+	 init.cpp
 SRC=$(addprefix src/,$(SRCS))
 INCLUDE=include
 
