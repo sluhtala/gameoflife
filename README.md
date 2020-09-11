@@ -8,5 +8,6 @@ More about Game of life: https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 ------
 - space: play / pause
 - c: clear cells
+- left/right arrows: adjust game speed
 
 ![image](images/gameoflife_image.jpg)
